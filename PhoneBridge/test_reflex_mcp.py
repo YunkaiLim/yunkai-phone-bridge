@@ -40,8 +40,8 @@ class ReflexMCPTests(unittest.TestCase):
         return self.loop.run_until_complete(server.call_tool(TOOL_NAME, arguments))
 
     def test_all_40_legacy_tools_contracts_and_policy_are_exactly_unchanged(self):
-        baseline = json.loads((Path(__file__).parent / "verification" / "reflex-p0-20260923"
-                               / "legacy-baseline.json").read_text(encoding="utf-8"))
+        baseline = json.loads((Path(__file__).parent / "testdata"
+                               / "legacy-tool-contract-baseline.json").read_text(encoding="utf-8"))
         legacy = [tool.model_dump(mode="json") for tool in self.tools if tool.name not in (
             TOOL_NAME, STATUS_TOOL_NAME, companion_owned.TOOL_NAME, companion_owned.STATUS_TOOL_NAME)]
         self.assertEqual(len(legacy), 40)
