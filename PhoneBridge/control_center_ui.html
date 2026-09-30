@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PhoneBridge Control Center</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #071019;
+      --panel: rgba(16, 28, 42, .78);
+      --panel-2: rgba(21, 38, 57, .92);
+      --line: rgba(150, 201, 255, .14);
+      --line-strong: rgba(122, 221, 255, .3);
+      --text: #eef7ff;
+      --muted: #8da7bd;
+      --cyan: #62e9ff;
+      --green: #65f2b8;
+      --amber: #ffc86e;
+      --red: #ff7c94;
+      --violet: #b49aff;
+      --shadow: 0 28px 70px rgba(0, 0, 0, .34);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 15% -10%, rgba(61, 211, 255, .18), transparent 34rem),
+        radial-gradient(circle at 96% 6%, rgba(126, 94, 255, .15), transparent 28rem),
+        linear-gradient(160deg, #071019 0%, #07131f 42%, #050b12 100%);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .22;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, black, transparent 78%);
+    }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    .shell { width: min(1580px, calc(100vw - 36px)); margin: 22px auto 40px; position: relative; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 18px;
+      padding: 14px 18px; border: 1px solid var(--line); border-radius: 20px;
+      background: rgba(8, 17, 28, .74); backdrop-filter: blur(18px); box-shadow: var(--shadow);
+      position: sticky; top: 12px; z-index: 20;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 260px; }
+    .logo {
+      width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center;
+      background: linear-gradient(145deg, rgba(98,233,255,.24), rgba(180,154,255,.18));
+      border: 1px solid var(--line-strong); box-shadow: inset 0 0 24px rgba(98,233,255,.12);
+      color: var(--cyan); font-weight: 900; letter-spacing: -1px;
+    }
+    .brand h1 { font-size: 16px; margin: 0; letter-spacing: .01em; }
+    .brand p { font-size: 12px; margin: 3px 0 0; color: var(--muted); }
+    .status-row { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; border-radius: 999px;
+      border: 1px solid var(--line); background: rgba(255,255,255,.035); color: var(--muted); font-size: 12px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #5c6771; box-shadow: 0 0 0 4px rgba(255,255,255,.02); }
+    .pill.good { color: #c9ffeb; border-color: rgba(101,242,184,.24); }
+    .pill.good .dot { background: var(--green); box-shadow: 0 0 14px rgba(101,242,184,.8); }
+    .pill.warn { color: #ffe7b5; border-color: rgba(255,200,110,.22); }
+    .pill.warn .dot { background: var(--amber); }
+    .grid {
+      margin-top: 18px; display: grid; grid-template-columns: minmax(340px, .92fr) minmax(540px, 1.55fr) minmax(320px, .9fr);
+      gap: 16px; align-items: start;
+    }
+    .panel {
+      border: 1px solid var(--line); background: var(--panel); backdrop-filter: blur(18px);
+      border-radius: 22px; box-shadow: var(--shadow); overflow: hidden;
+    }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px 18px 12px; }
+    .eyebrow { color: var(--cyan); font-weight: 700; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
+    .panel h2 { font-size: 16px; margin: 3px 0 0; }
+    .muted { color: var(--muted); }
+    .tiny { font-size: 11px; }
+    .phone-wrap { padding: 0 14px 14px; }
+    .screen {
+      position: relative; border-radius: 18px; overflow: hidden; background: #020509; border: 1px solid rgba(255,255,255,.08);
+      aspect-ratio: 16 / 9; display: grid; place-items: center;
+    }
+    .screen img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .screen .overlay {
+      position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 46px rgba(0,0,0,.32);
+    }
+    .phone-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .metric { padding: 11px 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.025); }
+    .metric b { display:block; font-size: 13px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .metric span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .guard {
+      margin: 0 14px 14px; padding: 12px; border-radius: 15px; border: 1px solid rgba(101,242,184,.18);
+      background: linear-gradient(135deg, rgba(101,242,184,.08), rgba(98,233,255,.035)); display: flex; gap: 10px;
+    }
+    .guard .lock { font-size: 18px; }
+    .guard b { font-size: 12px; }
+    .guard p { margin: 4px 0 0; font-size: 11px; color: var(--muted); line-height: 1.5; }
+    .tabs { display: flex; gap: 8px; padding: 14px 14px 0; }
+    .tab {
+      flex: 1; border: 1px solid var(--line); background: rgba(255,255,255,.025); color: var(--muted);
+      border-radius: 13px; padding: 10px 12px; transition: .18s ease; font-weight: 700; font-size: 13px;
+    }
+    .tab.active { color: var(--text); border-color: rgba(98,233,255,.38); background: rgba(98,233,255,.09); box-shadow: inset 0 0 22px rgba(98,233,255,.04); }
+    .tab-pane { display: none; padding: 16px; }
+    .tab-pane.active { display: block; }
+    .field { margin-bottom: 12px; }
+    .field label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; color: #cdddec; font-size: 12px; }
+    .field small { color: var(--muted); font-weight: 400; }
+    input, textarea, select {
+      width: 100%; color: var(--text); background: rgba(2, 9, 16, .68); border: 1px solid var(--line); border-radius: 13px;
+      outline: none; padding: 11px 12px; transition: border .15s ease, box-shadow .15s ease;
+    }
+    input:focus, textarea:focus, select:focus { border-color: rgba(98,233,255,.42); box-shadow: 0 0 0 3px rgba(98,233,255,.06); }
+    textarea { min-height: 132px; resize: vertical; line-height: 1.55; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
+    .btn {
+      border: 1px solid var(--line); border-radius: 13px; padding: 10px 14px; background: rgba(255,255,255,.045); color: var(--text);
+      font-weight: 750; font-size: 12px; transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.24); }
+    .btn.primary { background: linear-gradient(135deg, rgba(98,233,255,.22), rgba(80,187,255,.13)); border-color: rgba(98,233,255,.45); }
+    .btn.stop { background: rgba(255,124,148,.09); color: #ffd8df; border-color: rgba(255,124,148,.28); }
+    .btn.ghost { background: transparent; color: var(--muted); }
+    .run-card {
+      margin-top: 14px; border-radius: 15px; border: 1px solid var(--line); padding: 12px; background: rgba(255,255,255,.025);
+      display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center;
+    }
+    .pulse { width: 10px; height: 10px; border-radius: 50%; background: #5b6975; }
+    .pulse.live { background: var(--green); box-shadow: 0 0 16px rgba(101,242,184,.72); animation: pulse 1.4s infinite; }
+    @keyframes pulse { 50% { transform: scale(1.35); opacity: .65; } }
+    .run-card b { font-size: 12px; }
+    .run-card p { margin: 3px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .routine-form { border: 1px solid var(--line); border-radius: 16px; padding: 13px; background: rgba(255,255,255,.02); }
+    .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 12px; }
+    .day { position: relative; }
+    .day input { position: absolute; opacity: 0; pointer-events: none; }
+    .day span { display: grid; place-items: center; padding: 8px 0; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); font-size: 11px; }
+    .day input:checked + span { color: var(--text); background: rgba(98,233,255,.09); border-color: rgba(98,233,255,.35); }
+    .routine-list { display: grid; gap: 9px; margin-top: 12px; }
+    .routine {
+      border: 1px solid var(--line); background: rgba(255,255,255,.024); border-radius: 15px; padding: 12px; display: grid; gap: 8px;
+    }
+    .routine-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .routine b { font-size: 12px; }
+    .routine .time { color: var(--cyan); font-variant-numeric: tabular-nums; }
+    .routine p { margin: 0; font-size: 11px; line-height: 1.5; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .routine-actions { display:flex; gap:7px; flex-wrap:wrap; }
+    .mini { padding: 7px 9px; border-radius: 10px; font-size: 10px; }
+    .logs { height: 690px; overflow: auto; padding: 0 12px 14px; scrollbar-width: thin; }
+    .log { padding: 10px 9px; border-bottom: 1px solid rgba(255,255,255,.055); }
+    .log-head { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+    .tag { font-size: 9px; text-transform: uppercase; letter-spacing: .09em; color: var(--cyan); }
+    .tag.error { color: var(--red); }
+    .tag.warning { color: var(--amber); }
+    .tag.success { color: var(--green); }
+    .tag.decision { color: var(--violet); }
+    .log time { font-size: 9px; color: #61778a; font-variant-numeric: tabular-nums; }
+    .log p { margin: 5px 0 0; color: #c5d5e2; font-size: 11px; line-height: 1.5; word-break: break-word; }
+    .log details { margin-top: 5px; }
+    .log summary { color: #6f8496; font-size: 9px; cursor: pointer; }
+    .log pre { white-space: pre-wrap; word-break: break-word; font-size: 9px; color: #92a9bb; background: rgba(0,0,0,.22); padding: 8px; border-radius: 9px; }
+    .empty { color: var(--muted); font-size: 11px; text-align:center; padding:24px 10px; }
+    .toast {
+      position: fixed; right: 24px; bottom: 24px; max-width: 360px; padding: 12px 14px; border-radius: 13px;
+      background: rgba(16,28,42,.95); border: 1px solid var(--line-strong); box-shadow: var(--shadow); color: var(--text); font-size: 12px;
+      transform: translateY(18px); opacity: 0; pointer-events: none; transition: .2s ease; z-index: 99;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    @media (max-width: 1180px) { .grid { grid-template-columns: minmax(330px, .9fr) minmax(520px, 1.4fr); } .logs-panel { grid-column: 1 / -1; } .logs { height: 360px; } }
+    @media (max-width: 820px) { .shell { width: min(100% - 20px, 760px); } .topbar { align-items: flex-start; flex-direction: column; } .status-row { justify-content:flex-start; } .grid { grid-template-columns: 1fr; } .logs-panel { grid-column: auto; } .row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">PB</div>
+        <div>
+          <h1>Yunkai PhoneBridge Control Center</h1>
+          <p>本机自动驾驶 · UIAutomator 优先 · Local Vision 按需</p>
+        </div>
+      </div>
+      <div class="status-row">
+        <div id="devicePill" class="pill"><span class="dot"></span><span>手机未连接</span></div>
+        <div id="visionPill" class="pill"><span class="dot"></span><span>Local Vision</span></div>
+        <div id="apiPill" class="pill"><span class="dot"></span><span>DeepSeek 未配置</span></div>
+        <div class="pill good"><span class="dot"></span><span>消费保护 ON</span></div>
+      </div>
+    </header>
+
+    <section class="grid">
+      <aside class="panel">
+        <div class="panel-head">
+          <div><div class="eyebrow">Live phone</div><h2>手机画面</h2></div>
+          <button class="btn ghost mini" onclick="refreshScreenshot(true)">刷新</button>
+        </div>
+        <div class="phone-wrap">
+          <div class="screen">
+            <img id="screenImg" alt="Android screenshot" />
+            <div class="overlay"></div>
+          </div>
+          <div class="phone-meta">
+            <div class="metric"><span>ADB</span><b id="deviceName">等待连接</b></div>
+            <div class="metric"><span>Vision</span><b id="visionModel">未启用</b></div>
+          </div>
+        </div>
+        <div class="guard">
+          <div class="lock">🔒</div>
+          <div><b>自动模式永久消费保护</b><p>DeepSeek / 每日任务不会执行充值、购买、支付、抽卡或消耗高级货币；原来的 PhoneBridge 删除/安装/Root 限制也保持不变。</p></div>
+        </div>
+      </aside>
+
+      <section class="panel">
+        <div class="tabs">
+          <button class="tab active" data-tab="auto">DeepSeek 自动驾驶</button>
+          <button class="tab" data-tab="daily">每日自动指令</button>
+        </div>
+
+        <div id="tab-auto" class="tab-pane active">
+          <div class="row">
+            <div class="field">
+              <label>DeepSeek Model <small>默认 deepseek-chat</small></label>
+              <input id="model" value="deepseek-chat" />
+            </div>
+            <div class="field">
+              <label>最大动作数 <small>1–80</small></label>
+              <input id="maxActions" type="number" min="1" max="80" value="24" />
+            </div>
+          </div>
+          <div class="field">
+            <label>API Base URL <small>OpenAI-compatible / DeepSeek</small></label>
+            <input id="baseUrl" value="https://api.deepseek.com" />
+          </div>
+          <div class="field">
+            <label>DeepSeek API Key <small>仅保存在本次 Control Center 内存</small></label>
+            <input id="apiKey" type="password" autocomplete="off" placeholder="sk-...（不会写进项目文件）" />
+          </div>
+          <div class="field">
+            <label>这次让它做什么 <small>高层目标即可</small></label>
+            <textarea id="goal" placeholder="例如：打开星穹铁道，继续当前剧情；遇到需要消费星琼、充值或抽卡就立即停止。"></textarea>
+          </div>
+          <div class="actions">
+            <button class="btn primary" onclick="startAgent()">▶ 开始自动操作</button>
+            <button class="btn stop" onclick="stopAgent()">■ Stop</button>
+            <button class="btn ghost" onclick="saveConfig()">保存设置</button>
+          </div>
+          <div class="run-card">
+            <span id="runPulse" class="pulse"></span>
+            <div><b id="runTitle">当前空闲</b><p id="runDetail">等待新指令。自动驾驶每一步都会重新读取手机状态。</p></div>
+          </div>
+        </div>
+
+        <div id="tab-daily" class="tab-pane">
+          <div class="routine-form">
+            <div class="row">
+              <div class="field"><label>任务名称</label><input id="routineName" placeholder="星铁每日领取" /></div>
+              <div class="field"><label>运行时间 <small>电脑本地时间</small></label><input id="routineTime" type="time" value="09:00" /></div>
+            </div>
+            <div class="field">
+              <label>运行星期 <small>默认每天</small></label>
+              <div class="days" id="days">
+                <label class="day"><input type="checkbox" value="0" checked><span>一</span></label>
+                <label class="day"><input type="checkbox" value="1" checked><span>二</span></label>
+                <label class="day"><input type="checkbox" value="2" checked><span>三</span></label>
+                <label class="day"><input type="checkbox" value="3" checked><span>四</span></label>
+                <label class="day"><input type="checkbox" value="4" checked><span>五</span></label>
+                <label class="day"><input type="checkbox" value="5" checked><span>六</span></label>
+                <label class="day"><input type="checkbox" value="6" checked><span>日</span></label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="field"><label>最大动作数</label><input id="routineMax" type="number" min="1" max="80" value="24" /></div>
+              <div class="field"><label>状态</label><select id="routineEnabled"><option value="true">启用</option><option value="false">暂停</option></select></div>
+            </div>
+            <div class="field">
+              <label>每日高层指令 <small>到时间后自动读屏 → 按需本地视觉 → DeepSeek 操作</small></label>
+              <textarea id="routinePrompt" placeholder="例如：进入星穹铁道，领取所有不需要花星琼/付费的每日奖励；如果遇到活动剧情就停下，不要抽卡、充值或消耗星琼。"></textarea>
+            </div>
+            <div class="actions">
+              <button class="btn primary" onclick="saveRoutine()">＋ 保存每日任务</button>
+              <button class="btn ghost" onclick="resetRoutineForm()">清空</button>
+            </div>
+            <input id="editingRoutineId" type="hidden" />
+          </div>
+          <div id="routineList" class="routine-list"></div>
+          <p class="muted tiny" style="line-height:1.6;margin:12px 2px 0;">每日任务由这台电脑本地的 Control Center 定时执行，所以到点时需要电脑、ADB 手机连接、Control Center 和 DeepSeek API 都在线。安全隧道只在需要 ChatGPT 直接操作时才是必需的。</p>
+        </div>
+      </section>
+
+      <aside class="panel logs-panel">
+        <div class="panel-head">
+          <div><div class="eyebrow">Agent trace</div><h2>实时运行日志</h2></div>
+          <span class="muted tiny" id="logCount">0 条</span>
+        </div>
+        <div id="logs" class="logs"><div class="empty">等待运行日志…</div></div>
+      </aside>
+    </section>
+  </main>
+  <div id="toast" class="toast"></div>
+
+<script>
+  let currentStatus = null;
+  let lastScreenshotAt = 0;
+
+  const $ = id => document.getElementById(id);
+  const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+
+  async function api(path, options = {}) {
+    const res = await fetch(path, {
+      headers: {'Content-Type':'application/json', ...(options.headers || {})},
+      ...options,
+      body: options.body && typeof options.body !== 'string' ? JSON.stringify(options.body) : options.body
+    });
+    let data = {};
+    try { data = await res.json(); } catch (_) {}
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  function toast(msg) {
+    const node = $('toast'); node.textContent = msg; node.classList.add('show');
+    clearTimeout(toast.timer); toast.timer = setTimeout(() => node.classList.remove('show'), 2600);
+  }
+
+  function setPill(id, good, text, warn = false) {
+    const el = $(id); el.className = `pill ${good ? 'good' : warn ? 'warn' : ''}`;
+    el.querySelector('span:last-child').textContent = text;
+  }
+
+  async function refreshStatus() {
+    try {
+      const s = await api('/api/status'); currentStatus = s;
+      const device = (s.devices || []).find(d => d.state === 'device');
+      setPill('devicePill', !!device, device ? '手机已连接' : '手机未连接', !device);
+      $('deviceName').textContent = device ? (device.details || device.serial || 'Android device') : '等待连接';
+
+      const visionGood = !!s.vision?.enabled;
+      setPill('visionPill', visionGood, visionGood ? 'Local Vision 已就绪' : 'Local Vision 未启用', !visionGood);
+      $('visionModel').textContent = s.vision?.model || (visionGood ? s.vision?.provider : '未启用') || '未启用';
+
+      setPill('apiPill', !!s.config?.api_key_set, s.config?.api_key_set ? 'DeepSeek 已配置' : 'DeepSeek 未配置', !s.config?.api_key_set);
+      if (document.activeElement !== $('model')) $('model').value = s.config?.deepseek_model || $('model').value;
+      if (document.activeElement !== $('baseUrl')) $('baseUrl').value = s.config?.deepseek_base_url || $('baseUrl').value;
+      if (document.activeElement !== $('maxActions')) $('maxActions').value = s.config?.max_actions ?? $('maxActions').value;
+
+      const run = s.run || {};
+      $('runPulse').classList.toggle('live', !!run.running);
+      $('runTitle').textContent = run.running ? `正在执行 · Step ${run.step || 0}` : (run.last_error ? '上次运行出错' : '当前空闲');
+      $('runDetail').textContent = run.running ? (run.goal || '正在读取手机…') : (run.last_error || run.last_summary || '等待新指令。自动驾驶每一步都会重新读取手机状态。');
+
+      renderLogs(s.logs || []);
+      renderRoutines(s.routines || []);
+      if (Date.now() - lastScreenshotAt > (run.running ? 2500 : 7000)) refreshScreenshot(false);
+    } catch (err) {
+      setPill('devicePill', false, 'Control Center 离线', true);
+    }
+  }
+
+  function refreshScreenshot(force) {
+    lastScreenshotAt = Date.now();
+    const img = $('screenImg');
+    img.src = `/api/screenshot?t=${Date.now()}`;
+    img.onerror = () => { if (force) toast('暂时无法读取手机截图'); };
+  }
+
+  async function saveConfig() {
+    try {
+      const body = {
+        deepseek_model: $('model').value.trim(),
+        deepseek_base_url: $('baseUrl').value.trim(),
+        max_actions: Number($('maxActions').value || 24),
+      };
+      if ($('apiKey').value.trim()) body.api_key = $('apiKey').value.trim();
+      await api('/api/config', {method:'POST', body});
+      $('apiKey').value = '';
+      toast('设置已保存；API key 仅留在内存');
+      await refreshStatus();
+    } catch (err) { toast(err.message); }
+  }
+
+  async function startAgent() {
+    try {
+      await saveConfig();
+      const goal = $('goal').value.trim();
+      if (!goal) throw new Error('先写这次要做什么啦');
+      await api('/api/agent/start', {method:'POST', body:{goal, max_actions:Number($('maxActions').value || 24)}});
+      toast('自动驾驶已开始');
+      await refreshStatus();
+    } catch (err) { toast(err.message); }
+  }
+
+  async function stopAgent() {
+    try { await api('/api/agent/stop', {method:'POST', body:{}}); toast('已发送 Stop'); await refreshStatus(); }
+    catch (err) { toast(err.message); }
+  }
+
+  function selectedDays() { return [...document.querySelectorAll('#days input:checked')].map(x => Number(x.value)); }
+
+  async function saveRoutine() {
+    try {
+      const prompt = $('routinePrompt').value.trim();
+      if (!prompt) throw new Error('每日指令不能空白');
+      const body = {
+        id: $('editingRoutineId').value || undefined,
+        name: $('routineName').value.trim() || '每日任务',
+        time: $('routineTime').value || '09:00',
+        days: selectedDays(),
+        max_actions: Number($('routineMax').value || 24),
+        enabled: $('routineEnabled').value === 'true',
+        prompt,
+      };
+      await api('/api/routines/upsert', {method:'POST', body});
+      toast('每日任务已保存'); resetRoutineForm(); await refreshStatus();
+    } catch (err) { toast(err.message); }
+  }
+
+  function resetRoutineForm() {
+    $('editingRoutineId').value = '';
+    $('routineName').value = '';
+    $('routineTime').value = '09:00';
+    $('routineMax').value = currentStatus?.config?.max_actions || 24;
+    $('routineEnabled').value = 'true';
+    $('routinePrompt').value = '';
+    document.querySelectorAll('#days input').forEach(x => x.checked = true);
+  }
+
+  function editRoutine(id) {
+    const r = (currentStatus?.routines || []).find(x => x.id === id); if (!r) return;
+    $('editingRoutineId').value = r.id;
+    $('routineName').value = r.name || '';
+    $('routineTime').value = r.time || '09:00';
+    $('routineMax').value = r.max_actions || 24;
+    $('routineEnabled').value = r.enabled === false ? 'false' : 'true';
+    $('routinePrompt').value = r.prompt || '';
+    document.querySelectorAll('#days input').forEach(x => x.checked = (r.days || [0,1,2,3,4,5,6]).includes(Number(x.value)));
+    document.querySelector('[data-tab="daily"]').click();
+    window.scrollTo({top: 0, behavior:'smooth'});
+  }
+
+  async function runRoutine(id) {
+    try { await api('/api/routines/run', {method:'POST', body:{id}}); toast('任务已立即运行'); await refreshStatus(); }
+    catch (err) { toast(err.message); }
+  }
+
+  async function deleteRoutine(id) {
+    if (!confirm('删除这个每日任务？')) return;
+    try { await api('/api/routines/delete', {method:'POST', body:{id}}); toast('任务已删除'); await refreshStatus(); }
+    catch (err) { toast(err.message); }
+  }
+
+  function renderRoutines(items) {
+    const box = $('routineList');
+    if (!items.length) { box.innerHTML = '<div class="empty">还没有每日任务。上面写一条高层指令就可以啦。</div>'; return; }
+    const weekday = ['一','二','三','四','五','六','日'];
+    box.innerHTML = items.map(r => {
+      const days = (r.days || [0,1,2,3,4,5,6]).map(x => weekday[x]).join('');
+      return `<article class="routine">
+        <div class="routine-top"><b>${escapeHtml(r.name)}</b><span class="time">${escapeHtml(r.time)}</span></div>
+        <p>${escapeHtml(r.prompt)}</p>
+        <div class="muted tiny">周${days || '—'} · 最多 ${r.max_actions || 24} 步 · ${r.enabled === false ? '已暂停' : '已启用'}${r.last_run ? ` · 上次 ${escapeHtml(r.last_run)}` : ''}</div>
+        <div class="routine-actions">
+          <button class="btn mini primary" onclick="runRoutine('${r.id}')">立即运行</button>
+          <button class="btn mini ghost" onclick="editRoutine('${r.id}')">编辑</button>
+          <button class="btn mini stop" onclick="deleteRoutine('${r.id}')">删除</button>
+        </div>
+      </article>`;
+    }).join('');
+  }
+
+  function renderLogs(logs) {
+    $('logCount').textContent = `${logs.length} 条`;
+    const box = $('logs');
+    if (!logs.length) { box.innerHTML = '<div class="empty">等待运行日志…</div>'; return; }
+    const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 90;
+    box.innerHTML = logs.map(x => `<div class="log">
+      <div class="log-head"><span class="tag ${escapeHtml(x.level)}">${escapeHtml(x.level)}</span><time>${escapeHtml(x.time)}</time></div>
+      <p>${escapeHtml(x.message)}</p>
+      ${x.data ? `<details><summary>结构化详情</summary><pre>${escapeHtml(JSON.stringify(x.data, null, 2))}</pre></details>` : ''}
+    </div>`).join('');
+    if (nearBottom) box.scrollTop = box.scrollHeight;
+  }
+
+  document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(x => x.classList.remove('active'));
+    btn.classList.add('active'); $(`tab-${btn.dataset.tab}`).classList.add('active');
+  }));
+
+  refreshScreenshot(false);
+  refreshStatus();
+  setInterval(refreshStatus, 1800);
+</script>
+</body>
+</html>
