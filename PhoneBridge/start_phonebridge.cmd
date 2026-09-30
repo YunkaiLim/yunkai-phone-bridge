@@ -1,9 +1,9 @@
 @echo off
 setlocal
-title Yunkai Phone Bridge v0.1
+title Yunkai Phone Bridge v0.7.2
 
 echo ============================================================
-echo  Yunkai Phone Bridge v0.1 - Android MCP
+echo  Yunkai Phone Bridge v0.7.2 - Android MCP
 echo ============================================================
 echo.
 echo This server exposes only limited Android interaction tools.
@@ -13,7 +13,7 @@ echo.
 where adb >nul 2>nul
 if errorlevel 1 (
   echo [ERROR] adb is not available in PATH.
-  echo Run setup_android_phone.cmd first, then reopen this window.
+  echo Install Android Platform Tools, add adb to PATH, then reopen this window.
   pause
   exit /b 1
 )
