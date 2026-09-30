@@ -1,0 +1,2471 @@
+{
+  "tools": [
+    {
+      "name": "get_phonebridge_runtime_info",
+      "title": null,
+      "description": "Return runtime identity so callers can detect stale PhoneBridge processes after upgrades.",
+      "input_schema": {
+        "properties": {},
+        "title": "get_phonebridge_runtime_infoArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "get_phonebridge_runtime_infoDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "list_android_devices",
+      "title": null,
+      "description": "List Android devices visible to ADB and their authorization states.",
+      "input_schema": {
+        "properties": {},
+        "title": "list_android_devicesArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "list_android_devicesDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "get_android_wireless_status",
+      "title": null,
+      "description": "Inspect USB/wireless ADB transports and local mDNS pairing/connect services without changing device state.",
+      "input_schema": {
+        "properties": {},
+        "title": "get_android_wireless_statusArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "get_android_wireless_statusDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "pair_android_wireless",
+      "title": null,
+      "description": "Pair this workstation to one private/local Wireless ADB endpoint using a six-digit one-time code.",
+      "input_schema": {
+        "properties": {
+          "endpoint": {
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "pairing_code": {
+            "title": "Pairing Code",
+            "type": "string"
+          },
+          "auto_connect": {
+            "default": true,
+            "title": "Auto Connect",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "endpoint",
+          "pairing_code"
+        ],
+        "title": "pair_android_wirelessArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "pair_android_wirelessDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "connect_android_wireless",
+      "title": null,
+      "description": "Connect ADB to one already-paired private/local Wireless ADB endpoint.",
+      "input_schema": {
+        "properties": {
+          "endpoint": {
+            "title": "Endpoint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint"
+        ],
+        "title": "connect_android_wirelessArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "connect_android_wirelessDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "refresh_android_wireless_connection",
+      "title": null,
+      "description": "Run one bounded transport recovery: prefer one local mDNS service, else one known offline endpoint.",
+      "input_schema": {
+        "properties": {},
+        "title": "refresh_android_wireless_connectionArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "refresh_android_wireless_connectionDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "disconnect_android_wireless",
+      "title": null,
+      "description": "Disconnect one private/local Wireless ADB endpoint without revoking its pairing authorization.",
+      "input_schema": {
+        "properties": {
+          "endpoint": {
+            "title": "Endpoint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint"
+        ],
+        "title": "disconnect_android_wirelessArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "disconnect_android_wirelessDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "get_android_device_state",
+      "title": null,
+      "description": "Return a stable device/session guard snapshot including lock, orientation, and visible surface.",
+      "input_schema": {
+        "properties": {
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "title": "get_android_device_stateArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "get_android_device_stateDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "get_android_screen_size",
+      "title": null,
+      "description": "Return the active Android display size in pixels.",
+      "input_schema": {
+        "properties": {
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "title": "get_android_screen_sizeArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "get_android_screen_sizeDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "get_android_screenshot",
+      "title": null,
+      "description": "Capture the current Android screen as a PNG image.",
+      "input_schema": {
+        "properties": {
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "title": "get_android_screenshotArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "read_android_ui",
+      "title": null,
+      "description": "Return the current Android accessibility/UIAutomator hierarchy as XML.",
+      "input_schema": {
+        "properties": {
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "title": "read_android_uiArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "get_local_vision_status",
+      "title": null,
+      "description": "Return whether the optional localhost-only Ollama/LM Studio vision adapter is configured.",
+      "input_schema": {
+        "properties": {},
+        "title": "get_local_vision_statusArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "get_local_vision_statusDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "get_android_fast_context",
+      "title": null,
+      "description": "Return compact Android UI context and invoke the local VLM only when useful or explicitly forced.",
+      "input_schema": {
+        "properties": {
+          "force_vision": {
+            "default": false,
+            "title": "Force Vision",
+            "type": "boolean"
+          },
+          "include_visual_hash": {
+            "default": false,
+            "title": "Include Visual Hash",
+            "type": "boolean"
+          },
+          "limit": {
+            "default": 40,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "title": "get_android_fast_contextArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "get_android_fast_contextDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "verify_android_state_change",
+      "title": null,
+      "description": "Compare current Android semantic/surface/optional visual state using the shared Yunkai verification contract.",
+      "input_schema": {
+        "properties": {
+          "previous_semantic_signature": {
+            "title": "Previous Semantic Signature",
+            "type": "string"
+          },
+          "previous_visual_dhash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Previous Visual Dhash"
+          },
+          "previous_package_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Previous Package Name"
+          },
+          "previous_activity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Previous Activity"
+          },
+          "verification_policy": {
+            "default": "any_confident_change",
+            "title": "Verification Policy",
+            "type": "string"
+          },
+          "limit": {
+            "default": 40,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "previous_semantic_signature"
+        ],
+        "title": "verify_android_state_changeArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "verify_android_state_changeDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "get_android_screen_context",
+      "title": null,
+      "description": "Return a compact accessibility/UI snapshot and whether screenshot vision is recommended.",
+      "input_schema": {
+        "properties": {
+          "limit": {
+            "default": 40,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "title": "get_android_screen_contextArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "get_android_screen_contextDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "find_android_ui_elements",
+      "title": null,
+      "description": "Find Android UI elements by visible text, accessibility description, or resource-id without touching the phone.",
+      "input_schema": {
+        "properties": {
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Text"
+          },
+          "content_desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Content Desc"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Resource Id"
+          },
+          "exact": {
+            "default": true,
+            "title": "Exact",
+            "type": "boolean"
+          },
+          "case_sensitive": {
+            "default": false,
+            "title": "Case Sensitive",
+            "type": "boolean"
+          },
+          "limit": {
+            "default": 20,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "title": "find_android_ui_elementsArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "find_android_ui_elementsDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "get_current_android_app",
+      "title": null,
+      "description": "Return the package/activity currently focused on the Android device.",
+      "input_schema": {
+        "properties": {
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "title": "get_current_android_appArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "get_current_android_appDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "tap_android",
+      "title": null,
+      "description": "Tap one on-screen coordinate.",
+      "input_schema": {
+        "properties": {
+          "x": {
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "title": "Y",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "tap_androidArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "tap_androidDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "tap_android_ui_element",
+      "title": null,
+      "description": "Find an Android UI element and tap its mapped center; ambiguous matches are rejected unless index is explicit.",
+      "input_schema": {
+        "properties": {
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Text"
+          },
+          "content_desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Content Desc"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Resource Id"
+          },
+          "exact": {
+            "default": true,
+            "title": "Exact",
+            "type": "boolean"
+          },
+          "case_sensitive": {
+            "default": false,
+            "title": "Case Sensitive",
+            "type": "boolean"
+          },
+          "index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Index"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "title": "tap_android_ui_elementArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "tap_android_ui_elementDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "tap_android_ui_element_verified",
+      "title": null,
+      "description": "Resolve one Android UI element, tap it once, then verify without automatic retry.",
+      "input_schema": {
+        "properties": {
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Text"
+          },
+          "content_desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Content Desc"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Resource Id"
+          },
+          "exact": {
+            "default": true,
+            "title": "Exact",
+            "type": "boolean"
+          },
+          "case_sensitive": {
+            "default": false,
+            "title": "Case Sensitive",
+            "type": "boolean"
+          },
+          "index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Index"
+          },
+          "expected_package_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Package Name"
+          },
+          "observation_attempts": {
+            "default": 3,
+            "title": "Observation Attempts",
+            "type": "integer"
+          },
+          "observation_delay_ms": {
+            "default": 250,
+            "title": "Observation Delay Ms",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "title": "tap_android_ui_element_verifiedArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "tap_android_ui_element_verifiedDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "wait_for_android_ui_element",
+      "title": null,
+      "description": "Wait for one bounded UIAutomator element presence/absence condition without touching the phone.",
+      "input_schema": {
+        "properties": {
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Text"
+          },
+          "content_desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Content Desc"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Resource Id"
+          },
+          "exact": {
+            "default": true,
+            "title": "Exact",
+            "type": "boolean"
+          },
+          "case_sensitive": {
+            "default": false,
+            "title": "Case Sensitive",
+            "type": "boolean"
+          },
+          "expected_present": {
+            "default": true,
+            "title": "Expected Present",
+            "type": "boolean"
+          },
+          "observation_attempts": {
+            "default": 4,
+            "title": "Observation Attempts",
+            "type": "integer"
+          },
+          "observation_delay_ms": {
+            "default": 250,
+            "title": "Observation Delay Ms",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 20,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "title": "wait_for_android_ui_elementArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "wait_for_android_ui_elementDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "long_press_android",
+      "title": null,
+      "description": "Long-press one on-screen coordinate for 300-5000 ms.",
+      "input_schema": {
+        "properties": {
+          "x": {
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "title": "Y",
+            "type": "integer"
+          },
+          "duration_ms": {
+            "default": 700,
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "long_press_androidArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "long_press_androidDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "long_press_android_verified",
+      "title": null,
+      "description": "Long-press once, then perform bounded verification without automatic retry.",
+      "input_schema": {
+        "properties": {
+          "x": {
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "title": "Y",
+            "type": "integer"
+          },
+          "duration_ms": {
+            "default": 700,
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "expected_package_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Package Name"
+          },
+          "verification_policy": {
+            "default": "any_confident_change",
+            "title": "Verification Policy",
+            "type": "string"
+          },
+          "observation_attempts": {
+            "default": 3,
+            "title": "Observation Attempts",
+            "type": "integer"
+          },
+          "observation_delay_ms": {
+            "default": 250,
+            "title": "Observation Delay Ms",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 40,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "long_press_android_verifiedArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "long_press_android_verifiedDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "swipe_android",
+      "title": null,
+      "description": "Swipe between two screen coordinates.",
+      "input_schema": {
+        "properties": {
+          "start_x": {
+            "title": "Start X",
+            "type": "integer"
+          },
+          "start_y": {
+            "title": "Start Y",
+            "type": "integer"
+          },
+          "end_x": {
+            "title": "End X",
+            "type": "integer"
+          },
+          "end_y": {
+            "title": "End Y",
+            "type": "integer"
+          },
+          "duration_ms": {
+            "default": 400,
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "start_x",
+          "start_y",
+          "end_x",
+          "end_y"
+        ],
+        "title": "swipe_androidArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "swipe_androidDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "swipe_android_direction",
+      "title": null,
+      "description": "Swipe from screen center in one cardinal direction without using raw coordinates.",
+      "input_schema": {
+        "properties": {
+          "direction": {
+            "title": "Direction",
+            "type": "string"
+          },
+          "distance_ratio": {
+            "default": 0.35,
+            "title": "Distance Ratio",
+            "type": "number"
+          },
+          "duration_ms": {
+            "default": 400,
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "direction"
+        ],
+        "title": "swipe_android_directionArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "swipe_android_directionDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "tap_android_verified",
+      "title": null,
+      "description": "Tap once, then perform bounded read-only verification without automatic action retry.",
+      "input_schema": {
+        "properties": {
+          "x": {
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "title": "Y",
+            "type": "integer"
+          },
+          "expected_package_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Package Name"
+          },
+          "verification_policy": {
+            "default": "any_confident_change",
+            "title": "Verification Policy",
+            "type": "string"
+          },
+          "observation_attempts": {
+            "default": 3,
+            "title": "Observation Attempts",
+            "type": "integer"
+          },
+          "observation_delay_ms": {
+            "default": 250,
+            "title": "Observation Delay Ms",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 40,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "tap_android_verifiedArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "tap_android_verifiedDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "swipe_android_verified",
+      "title": null,
+      "description": "Swipe once, then perform bounded read-only verification without automatic action retry.",
+      "input_schema": {
+        "properties": {
+          "start_x": {
+            "title": "Start X",
+            "type": "integer"
+          },
+          "start_y": {
+            "title": "Start Y",
+            "type": "integer"
+          },
+          "end_x": {
+            "title": "End X",
+            "type": "integer"
+          },
+          "end_y": {
+            "title": "End Y",
+            "type": "integer"
+          },
+          "duration_ms": {
+            "default": 400,
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "expected_package_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Package Name"
+          },
+          "verification_policy": {
+            "default": "any_confident_change",
+            "title": "Verification Policy",
+            "type": "string"
+          },
+          "observation_attempts": {
+            "default": 3,
+            "title": "Observation Attempts",
+            "type": "integer"
+          },
+          "observation_delay_ms": {
+            "default": 250,
+            "title": "Observation Delay Ms",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 40,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "start_x",
+          "start_y",
+          "end_x",
+          "end_y"
+        ],
+        "title": "swipe_android_verifiedArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "swipe_android_verifiedDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "swipe_android_direction_verified",
+      "title": null,
+      "description": "Perform one safe directional swipe, then verify without automatic retry.",
+      "input_schema": {
+        "properties": {
+          "direction": {
+            "title": "Direction",
+            "type": "string"
+          },
+          "distance_ratio": {
+            "default": 0.35,
+            "title": "Distance Ratio",
+            "type": "number"
+          },
+          "duration_ms": {
+            "default": 400,
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "expected_package_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Package Name"
+          },
+          "verification_policy": {
+            "default": "any_confident_change",
+            "title": "Verification Policy",
+            "type": "string"
+          },
+          "observation_attempts": {
+            "default": 3,
+            "title": "Observation Attempts",
+            "type": "integer"
+          },
+          "observation_delay_ms": {
+            "default": 250,
+            "title": "Observation Delay Ms",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 40,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "direction"
+        ],
+        "title": "swipe_android_direction_verifiedArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "swipe_android_direction_verifiedDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "game_joystick_move",
+      "title": null,
+      "description": "Perform one bounded joystick-style hold using ADB input swipe, guarded to the expected foreground package.",
+      "input_schema": {
+        "properties": {
+          "direction": {
+            "title": "Direction",
+            "type": "string"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "expected_package_name": {
+            "title": "Expected Package Name",
+            "type": "string"
+          },
+          "center_x": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Center X"
+          },
+          "center_y": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Center Y"
+          },
+          "radius_px": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Radius Px"
+          },
+          "observation_attempts": {
+            "default": 2,
+            "title": "Observation Attempts",
+            "type": "integer"
+          },
+          "observation_delay_ms": {
+            "default": 200,
+            "title": "Observation Delay Ms",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 20,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "direction",
+          "duration_ms",
+          "expected_package_name"
+        ],
+        "title": "game_joystick_moveArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "game_joystick_moveDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "game_camera_drag",
+      "title": null,
+      "description": "Perform one bounded game-camera drag from a safe landscape region and verify it without retrying.",
+      "input_schema": {
+        "properties": {
+          "direction": {
+            "title": "Direction",
+            "type": "string"
+          },
+          "distance_px": {
+            "title": "Distance Px",
+            "type": "integer"
+          },
+          "expected_package_name": {
+            "title": "Expected Package Name",
+            "type": "string"
+          },
+          "duration_ms": {
+            "default": 350,
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "start_x": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Start X"
+          },
+          "start_y": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Start Y"
+          },
+          "observation_attempts": {
+            "default": 2,
+            "title": "Observation Attempts",
+            "type": "integer"
+          },
+          "observation_delay_ms": {
+            "default": 180,
+            "title": "Observation Delay Ms",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 20,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "direction",
+          "distance_px",
+          "expected_package_name"
+        ],
+        "title": "game_camera_dragArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "game_camera_dragDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "type_android_text",
+      "title": null,
+      "description": "Type short ASCII text into the currently focused Android input field.",
+      "input_schema": {
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "type_android_textArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "type_android_textDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "type_android_text_verified",
+      "title": null,
+      "description": "Type once into the focused field, then verify bounded state change without retrying input.",
+      "input_schema": {
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "expected_package_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Package Name"
+          },
+          "verification_policy": {
+            "default": "any_confident_change",
+            "title": "Verification Policy",
+            "type": "string"
+          },
+          "observation_attempts": {
+            "default": 3,
+            "title": "Observation Attempts",
+            "type": "integer"
+          },
+          "observation_delay_ms": {
+            "default": 250,
+            "title": "Observation Delay Ms",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 40,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "type_android_text_verifiedArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "type_android_text_verifiedDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "press_android_key",
+      "title": null,
+      "description": "Press a safe Android key: HOME, BACK, ENTER, TAB, DPAD directions, ESCAPE, or volume.",
+      "input_schema": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "press_android_keyArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "press_android_keyDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "press_android_key_verified",
+      "title": null,
+      "description": "Press one allowlisted Android key once, then verify bounded post-action state.",
+      "input_schema": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "expected_package_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Package Name"
+          },
+          "expected_post_package_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Post Package Name"
+          },
+          "verification_policy": {
+            "default": "any_confident_change",
+            "title": "Verification Policy",
+            "type": "string"
+          },
+          "observation_attempts": {
+            "default": 3,
+            "title": "Observation Attempts",
+            "type": "integer"
+          },
+          "observation_delay_ms": {
+            "default": 250,
+            "title": "Observation Delay Ms",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 40,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "press_android_key_verifiedArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "press_android_key_verifiedDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "open_android_app",
+      "title": null,
+      "description": "Launch an installed Android app by package name, without installing or removing anything.",
+      "input_schema": {
+        "properties": {
+          "package_name": {
+            "title": "Package Name",
+            "type": "string"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "package_name"
+        ],
+        "title": "open_android_appArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "open_android_appDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "open_android_app_verified",
+      "title": null,
+      "description": "Launch an app once and wait for stable visible-surface ownership without retrying launch.",
+      "input_schema": {
+        "properties": {
+          "package_name": {
+            "title": "Package Name",
+            "type": "string"
+          },
+          "observation_attempts": {
+            "default": 4,
+            "title": "Observation Attempts",
+            "type": "integer"
+          },
+          "observation_delay_ms": {
+            "default": 250,
+            "title": "Observation Delay Ms",
+            "type": "integer"
+          },
+          "serial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Serial"
+          }
+        },
+        "required": [
+          "package_name"
+        ],
+        "title": "open_android_app_verifiedArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "open_android_app_verifiedDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "get_phone_automation_status",
+      "title": null,
+      "description": "Read the localhost Control Center state and saved daily routines without exposing the DeepSeek API key.",
+      "input_schema": {
+        "properties": {},
+        "title": "get_phone_automation_statusArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "get_phone_automation_statusDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "save_phone_daily_routine",
+      "title": null,
+      "description": "Create or update a local daily phone routine for the Control Center scheduler.",
+      "input_schema": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "time": {
+            "title": "Time",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "days": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Days"
+          },
+          "max_actions": {
+            "default": 24,
+            "title": "Max Actions",
+            "type": "integer"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "routine_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Routine Id"
+          }
+        },
+        "required": [
+          "name",
+          "time",
+          "prompt"
+        ],
+        "title": "save_phone_daily_routineArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "save_phone_daily_routineDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "run_phone_daily_routine",
+      "title": null,
+      "description": "Run one saved phone routine immediately through the local Control Center.",
+      "input_schema": {
+        "properties": {
+          "routine_id": {
+            "title": "Routine Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "routine_id"
+        ],
+        "title": "run_phone_daily_routineArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "run_phone_daily_routineDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    },
+    {
+      "name": "stop_phone_automation",
+      "title": null,
+      "description": "Request that the local Control Center stop before its next autonomous Android action.",
+      "input_schema": {
+        "properties": {},
+        "title": "stop_phone_automationArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "output_schema": {
+        "additionalProperties": true,
+        "title": "stop_phone_automationDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": false,
+        "open_world_hint": false
+      },
+      "meta": null
+    }
+  ],
+  "manifest": {
+    "schema_version": 1,
+    "bridge": {
+      "id": "phone.android",
+      "name": "Yunkai Phone Bridge",
+      "version": "0.7.2",
+      "device_class": "phone",
+      "platform": "android"
+    },
+    "adapter": {
+      "role": "compatibility_device_adapter",
+      "transport": "mcp",
+      "transport_is_device_identity": false,
+      "tool_catalog_authoritative": false
+    },
+    "contract_versions": {
+      "device_contract": 1,
+      "capability_manifest": 1,
+      "capability_state": 1,
+      "permission_state": 1,
+      "planner_routing": 1,
+      "verification": 1,
+      "runtime_policy": 1,
+      "action_audit": 0,
+      "operation_trace": 0
+    },
+    "capability_groups": {
+      "connection": [
+        "phone.connection.wireless_status",
+        "phone.connection.wireless_pair",
+        "phone.connection.wireless_connect",
+        "phone.connection.wireless_refresh",
+        "phone.connection.wireless_disconnect"
+      ],
+      "perception": [
+        "phone.device.list",
+        "phone.screen.size",
+        "phone.screen.capture",
+        "phone.app.current",
+        "phone.device.state",
+        "phone.uia.inspect",
+        "phone.fast_context",
+        "phone.local_vision_fallback"
+      ],
+      "interaction": [
+        "phone.touch.tap",
+        "phone.touch.long_press",
+        "phone.touch.long_press_verified",
+        "phone.touch.swipe",
+        "phone.touch.swipe_direction",
+        "phone.touch.tap_verified",
+        "phone.touch.swipe_verified",
+        "phone.touch.swipe_direction_verified",
+        "phone.game.joystick_move",
+        "phone.game.camera_drag",
+        "phone.keyboard.type",
+        "phone.keyboard.type_verified",
+        "phone.keyboard.safe_key",
+        "phone.keyboard.safe_key_verified",
+        "phone.app.launch",
+        "phone.app.launch_verified",
+        "phone.uia.semantic_tap"
+      ],
+      "verification": [
+        "phone.state_change.verify",
+        "phone.uia.wait_condition"
+      ],
+      "automation": [
+        "phone.automation.status",
+        "phone.automation.daily_routine"
+      ]
+    },
+    "feature_flags": {
+      "uiautomator_semantics": true,
+      "local_vision_fallback": true,
+      "state_change_verification": true,
+      "verified_action_loop": true,
+      "directional_swipe": true,
+      "wait_for_ui_condition": true,
+      "verified_text_input": true,
+      "verified_safe_key": true,
+      "verified_long_press": true,
+      "wireless_adb": true,
+      "wireless_mdns_discovery": true,
+      "wireless_auto_reconnect": true,
+      "wireless_pairing_code_persisted": false,
+      "expected_post_predicates": false,
+      "bounded_observation_stabilization": true,
+      "automatic_action_retry": false,
+      "action_audit": false,
+      "operation_trace": false,
+      "unified_device_contract": true
+    },
+    "permission_model": {
+      "capabilities_are_permissions": false,
+      "separate_runtime_policy": true,
+      "runtime_policy_manifest_field": "runtime_policy",
+      "caller_selectable_profile": false,
+      "compatibility_default": "standard",
+      "legacy_action_enforcement_unchanged": true
+    },
+    "safety_invariants": {
+      "arbitrary_shell_exposed": false,
+      "file_delete_exposed": false,
+      "software_uninstall_exposed": false,
+      "clear_app_data_exposed": false,
+      "root_device_exposed": false,
+      "apk_install_exposed": false,
+      "caller_selectable_runtime_profile": false,
+      "verified_action_loop_supported": true,
+      "legacy_action_authority_unchanged": true,
+      "runtime_permission_enforced_by_legacy_actions": false,
+      "wireless_pairing_code_persisted": false,
+      "wireless_public_endpoint_allowed": false,
+      "automatic_wireless_transport_reconnect_only": true
+    }
+  },
+  "policy": {
+    "schema_version": 1,
+    "runtime_profile": "standard",
+    "permission_tiers": [
+      "observe",
+      "interact",
+      "elevated_input"
+    ],
+    "allowed_tiers": [
+      "observe",
+      "interact"
+    ],
+    "denied_tiers": [
+      "elevated_input"
+    ],
+    "profiles": {
+      "elevated_game": [
+        "observe",
+        "interact",
+        "elevated_input"
+      ],
+      "observe_only": [
+        "observe"
+      ],
+      "standard": [
+        "observe",
+        "interact"
+      ]
+    },
+    "default_profile": "standard",
+    "profile_source": "unified_contract_compatibility_adapter",
+    "model_selectable_profile": false,
+    "self_escalation": false,
+    "side_effect_free": true,
+    "enforcement_scope": "unified_planner_routing_only",
+    "legacy_action_authority_unchanged": true,
+    "bridge_enforced_for_existing_actions": false
+  }
+}
