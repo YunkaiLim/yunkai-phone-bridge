@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+*.log
+*.bak
+*.tmp
+phonebridge_tunnel_id.txt
+phonebridge_vision.json
+phonebridge_control_center.json
+runtime/
+.runtime/
+.local/
+verification/
+*.exe
