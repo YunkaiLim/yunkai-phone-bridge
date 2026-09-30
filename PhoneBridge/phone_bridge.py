@@ -1234,5 +1234,1332 @@ class AndroidBridge:
                     "class_name": class_name,
                     "package": package,
                     "clickable": clickable,
+                    "enabled": enabled,
+                    "input_bounds": [mapped_left, mapped_top, mapped_right, mapped_bottom],
+                    "input_center": [center_x, center_y],
+                }
+            )
 
-[Showing lines 1-1236 of 2566 (50.0KB limit). Use offset=1237 to continue.]
+        # Accessibility trees from games/canvas surfaces often contain only one
+        # generic surface node and no meaningful controls. Mark those screens so
+        # a future local VLM can be used only when it adds value.
+        generic_surface_only = bool(elements) and all(
+            not item["text"]
+            and not item["content_desc"]
+            and item["class_name"] in {"android.view.View", "android.view.SurfaceView"}
+            for item in elements
+        )
+        vision_recommended = informative_count <= 2 or generic_surface_only
+
+        signature_payload = {
+            "input_size": [input_width, input_height],
+            "orientation": orientation,
+            "packages": sorted(packages),
+            "informative_node_count": informative_count,
+            "clickable_node_count": clickable_count,
+            "elements": signature_elements,
+        }
+        semantic_signature = hashlib.sha256(
+            json.dumps(signature_payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()[:24]
+
+        return {
+            "serial": selected,
+            "input_size": [input_width, input_height],
+            "orientation": orientation,
+            "packages": sorted(packages),
+            "element_count": len(elements),
+            "informative_node_count": informative_count,
+            "clickable_node_count": clickable_count,
+            "semantic_signature": semantic_signature,
+            "semantic_signature_nodes": len(signature_elements),
+            "semantic_signature_truncated": informative_count > len(signature_elements),
+            "vision_recommended": vision_recommended,
+            "elements": elements,
+        }
+
+    def tap_ui_element(
+        self,
+        *,
+        text: str | None = None,
+        content_desc: str | None = None,
+        resource_id: str | None = None,
+        exact: bool = True,
+        case_sensitive: bool = False,
+        index: int | None = None,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Find a UI element, require an unambiguous match by default, and tap its mapped center."""
+        result = self.ui_elements(
+            text=text,
+            content_desc=content_desc,
+            resource_id=resource_id,
+            exact=exact,
+            case_sensitive=case_sensitive,
+            serial=serial,
+            limit=100,
+        )
+        matches = result["matches"]
+        if not matches:
+            raise PhoneBridgeError("No matching Android UI element was found.")
+        if index is None:
+            if len(matches) != 1:
+                raise PhoneBridgeError(
+                    f"Found {len(matches)} matching UI elements. Refine the query or pass an explicit index."
+                )
+            chosen_index = 0
+        else:
+            chosen_index = int(index)
+            if chosen_index < 0 or chosen_index >= len(matches):
+                raise PhoneBridgeError(
+                    f"Element index {chosen_index} is out of range for {len(matches)} matches."
+                )
+
+        chosen = matches[chosen_index]
+        if not chosen["enabled"]:
+            raise PhoneBridgeError("The selected Android UI element is disabled, so it was not tapped.")
+        center_x, center_y = chosen["input_center"]
+        tap_result = self.tap(center_x, center_y, result["serial"])
+        return {
+            **tap_result,
+            "action": "tap_ui_element",
+            "match_index": chosen_index,
+            "match_count": len(matches),
+            "element": chosen,
+        }
+
+    def tap_ui_element_verified(
+        self,
+        *,
+        text: str | None = None,
+        content_desc: str | None = None,
+        resource_id: str | None = None,
+        exact: bool = True,
+        case_sensitive: bool = False,
+        index: int | None = None,
+        expected_package_name: str | None = None,
+        observation_attempts: int = 3,
+        observation_delay_ms: int = 250,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Resolve one semantic UI element, tap it once, then verify without automatic retry."""
+        result = self.ui_elements(
+            text=text,
+            content_desc=content_desc,
+            resource_id=resource_id,
+            exact=exact,
+            case_sensitive=case_sensitive,
+            serial=serial,
+            limit=100,
+        )
+        matches = result["matches"]
+        if not matches:
+            raise PhoneBridgeError("No matching Android UI element was found.")
+        if index is None:
+            if len(matches) != 1:
+                raise PhoneBridgeError(
+                    f"Found {len(matches)} matching UI elements. Refine the query or pass an explicit index."
+                )
+            chosen_index = 0
+        else:
+            chosen_index = int(index)
+            if chosen_index < 0 or chosen_index >= len(matches):
+                raise PhoneBridgeError(
+                    f"Element index {chosen_index} is out of range for {len(matches)} matches."
+                )
+        chosen = matches[chosen_index]
+        if not chosen["enabled"]:
+            raise PhoneBridgeError("The selected Android UI element is disabled, so it was not tapped.")
+        center_x, center_y = chosen["input_center"]
+        expected = expected_package_name or str(chosen.get("package") or "") or None
+        verified = self.tap_verified(
+            center_x,
+            center_y,
+            expected_package_name=expected,
+            observation_attempts=observation_attempts,
+            observation_delay_ms=observation_delay_ms,
+            serial=result["serial"],
+        )
+        return {
+            **verified,
+            "action": "tap_ui_element_verified",
+            "match_index": chosen_index,
+            "match_count": len(matches),
+            "element": chosen,
+        }
+
+    def tap(self, x: int, y: int, serial: str | None = None) -> dict[str, Any]:
+        selected = self.select_device(serial)
+        x, y = self._validate_point(x, y, selected)
+        self._run(["shell", "input", "tap", str(x), str(y)], serial=selected)
+        return {"status": "ok", "action": "tap", "x": x, "y": y, "serial": selected}
+
+    def long_press(
+        self,
+        x: int,
+        y: int,
+        duration_ms: int = 700,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        selected = self.select_device(serial)
+        x, y = self._validate_point(x, y, selected)
+        duration_ms = max(300, min(5000, int(duration_ms)))
+        self._run(
+            ["shell", "input", "swipe", str(x), str(y), str(x), str(y), str(duration_ms)],
+            serial=selected,
+        )
+        return {
+            "status": "ok",
+            "action": "long_press",
+            "x": x,
+            "y": y,
+            "duration_ms": duration_ms,
+            "serial": selected,
+        }
+
+    def swipe(
+        self,
+        start_x: int,
+        start_y: int,
+        end_x: int,
+        end_y: int,
+        duration_ms: int = 400,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        selected = self.select_device(serial)
+        start_x, start_y = self._validate_point(start_x, start_y, selected)
+        end_x, end_y = self._validate_point(end_x, end_y, selected)
+        duration_ms = max(100, min(5000, int(duration_ms)))
+        self._run(
+            [
+                "shell",
+                "input",
+                "swipe",
+                str(start_x),
+                str(start_y),
+                str(end_x),
+                str(end_y),
+                str(duration_ms),
+            ],
+            serial=selected,
+        )
+        return {
+            "status": "ok",
+            "action": "swipe",
+            "start": [start_x, start_y],
+            "end": [end_x, end_y],
+            "duration_ms": duration_ms,
+            "serial": selected,
+        }
+
+    def _directional_swipe_points(
+        self,
+        direction: str,
+        distance_ratio: float,
+        serial: str,
+    ) -> tuple[str, float, tuple[int, int], tuple[int, int]]:
+        """Return safe center-origin swipe coordinates for one cardinal finger direction."""
+        normalized = direction.strip().lower()
+        if normalized not in SWIPE_DIRECTIONS:
+            raise PhoneBridgeError(
+                "Unsupported swipe direction. Allowed values: " + ", ".join(sorted(SWIPE_DIRECTIONS))
+            )
+        ratio = float(distance_ratio)
+        if not 0.10 <= ratio <= 0.70:
+            raise PhoneBridgeError("distance_ratio must be between 0.10 and 0.70.")
+
+        width, height = self.screen_size(serial)
+        center_x = width // 2
+        center_y = height // 2
+        margin_x = max(24, round(width * 0.12))
+        margin_y = max(24, round(height * 0.12))
+        vector_x, vector_y = SWIPE_DIRECTIONS[normalized]
+        axis_size = height if vector_y else width
+        distance = max(48, round(axis_size * ratio))
+        end_x = round(center_x + vector_x * distance)
+        end_y = round(center_y + vector_y * distance)
+        end_x = max(margin_x, min(width - 1 - margin_x, end_x))
+        end_y = max(margin_y, min(height - 1 - margin_y, end_y))
+        return normalized, ratio, (center_x, center_y), (end_x, end_y)
+
+    def swipe_direction(
+        self,
+        direction: str,
+        *,
+        distance_ratio: float = 0.35,
+        duration_ms: int = 400,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Swipe in a cardinal direction from screen center while staying away from gesture edges."""
+        selected = self.select_device(serial)
+        normalized, ratio, start, end = self._directional_swipe_points(
+            direction,
+            distance_ratio,
+            selected,
+        )
+        result = self.swipe(
+            start[0],
+            start[1],
+            end[0],
+            end[1],
+            duration_ms,
+            selected,
+        )
+        return {
+            **result,
+            "action": "swipe_direction",
+            "direction": normalized,
+            "distance_ratio": ratio,
+        }
+
+    def wait_for_ui_element(
+        self,
+        *,
+        text: str | None = None,
+        content_desc: str | None = None,
+        resource_id: str | None = None,
+        exact: bool = True,
+        case_sensitive: bool = False,
+        expected_present: bool = True,
+        observation_attempts: int = 4,
+        observation_delay_ms: int = 250,
+        limit: int = 20,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Poll UIAutomator for one bounded semantic presence/absence condition without acting on the phone."""
+        selected = self.select_device(serial)
+        attempts = max(1, min(MAX_UI_WAIT_ATTEMPTS, int(observation_attempts)))
+        delay_ms = max(0, min(MAX_UI_WAIT_DELAY_MS, int(observation_delay_ms)))
+        observations: list[dict[str, Any]] = []
+        last_result: dict[str, Any] | None = None
+
+        for attempt in range(1, attempts + 1):
+            last_result = self.ui_elements(
+                text=text,
+                content_desc=content_desc,
+                resource_id=resource_id,
+                exact=exact,
+                case_sensitive=case_sensitive,
+                serial=selected,
+                limit=limit,
+            )
+            present = bool(last_result["count"])
+            condition_met = present == bool(expected_present)
+            observations.append(
+                {
+                    "attempt": attempt,
+                    "present": present,
+                    "match_count": int(last_result["count"]),
+                    "condition_met": condition_met,
+                }
+            )
+            if condition_met:
+                return {
+                    "status": "ok",
+                    "action": "wait_for_ui_element",
+                    "serial": selected,
+                    "condition_met": True,
+                    "expected_present": bool(expected_present),
+                    "attempts_used": attempt,
+                    "attempts_max": attempts,
+                    "observation_delay_ms": delay_ms,
+                    "matches": last_result["matches"],
+                    "observations": observations,
+                }
+            if delay_ms and attempt < attempts:
+                time.sleep(delay_ms / 1000.0)
+
+        assert last_result is not None
+        return {
+            "status": "ok",
+            "action": "wait_for_ui_element",
+            "serial": selected,
+            "condition_met": False,
+            "expected_present": bool(expected_present),
+            "attempts_used": attempts,
+            "attempts_max": attempts,
+            "observation_delay_ms": delay_ms,
+            "matches": last_result["matches"],
+            "observations": observations,
+        }
+
+    @staticmethod
+    def _normalize_expected_package(expected_package_name: str | None) -> str | None:
+        if expected_package_name is None:
+            return None
+        package_name = expected_package_name.strip()
+        if not PACKAGE_RE.fullmatch(package_name):
+            raise PhoneBridgeError("Invalid expected Android package name.")
+        return package_name
+
+    def _require_foreground_package(
+        self,
+        expected_package_name: str | None,
+        serial: str,
+        *,
+        phase: str,
+    ) -> dict[str, Any]:
+        expected = self._normalize_expected_package(expected_package_name)
+        current = self.surface_identity(serial, limit=12)
+        if expected is None:
+            return current
+        actual = current.get("package_name", "")
+        if actual != expected:
+            actual_label = actual or "<unknown>"
+            raise PhoneBridgeError(
+                f"Foreground package guard failed {phase}: expected '{expected}', got '{actual_label}'."
+            )
+        return current
+
+    def _verification_baseline(
+        self,
+        serial: str,
+        *,
+        limit: int,
+    ) -> dict[str, Any]:
+        context = self.screen_context(serial=serial, limit=limit)
+        reported_app = self.current_app(serial)
+        visible_packages = [str(item) for item in context.get("packages", []) if str(item)]
+        visible_package = visible_packages[0] if len(visible_packages) == 1 else ""
+        reported_package = str(reported_app.get("package_name") or "")
+        reported_activity = str(reported_app.get("activity") or "")
+        package_name = visible_package or reported_package
+        activity = reported_activity if not visible_package or visible_package == reported_package else ""
+        return {
+            "semantic_signature": context["semantic_signature"],
+            "visual_dhash": self.screen_visual_hash(serial),
+            "package_name": package_name,
+            "activity": activity,
+            "identity_source": (
+                "uia_visible_package" if visible_package else "dumpsys_fallback"
+            ),
+        }
+
+    def _observe_verified_action(
+        self,
+        baseline: dict[str, Any],
+        *,
+        expected_package_name: str | None,
+        verification_policy: str,
+        observation_attempts: int,
+        observation_delay_ms: int,
+        limit: int,
+        serial: str,
+    ) -> dict[str, Any]:
+        expected = self._normalize_expected_package(expected_package_name)
+        attempts = max(1, min(MAX_VERIFICATION_ATTEMPTS, int(observation_attempts)))
+        delay_ms = max(0, min(MAX_VERIFICATION_DELAY_MS, int(observation_delay_ms)))
+        observations: list[dict[str, Any]] = []
+        final_verification: dict[str, Any] | None = None
+        final_guard_ok = expected is None
+
+        for attempt in range(1, attempts + 1):
+            if delay_ms:
+                time.sleep(delay_ms / 1000.0)
+            verification = self.verify_state_change(
+                baseline["semantic_signature"],
+                previous_visual_dhash=baseline["visual_dhash"],
+                previous_package_name=baseline.get("package_name") or None,
+                previous_activity=baseline.get("activity") or None,
+                verification_policy=verification_policy,
+                limit=limit,
+                serial=serial,
+            )
+            current_package = str(verification["current"].get("package_name") or "")
+            guard_ok = expected is None or current_package == expected
+            observations.append(
+                {
+                    "attempt": attempt,
+                    "verification_passed": bool(verification.get("verification_passed")),
+                    "state_change_detected": bool(verification.get("state_change_detected")),
+                    "foreground_guard_ok": guard_ok,
+                    "current_package_name": current_package,
+                }
+            )
+            final_verification = verification
+            final_guard_ok = guard_ok
+            if verification.get("verification_passed") and guard_ok:
+                break
+
+        assert final_verification is not None
+        verification_passed = bool(final_verification.get("verification_passed")) and final_guard_ok
+        if verification_passed:
+            execution_status = "EXECUTED_VERIFIED"
+        elif final_guard_ok:
+            execution_status = "EXECUTED_UNVERIFIED"
+        else:
+            execution_status = "RECOVERABLE_ERROR"
+        return {
+            "verification_passed": verification_passed,
+            "foreground_guard_ok": final_guard_ok,
+            "execution_status": execution_status,
+            "safe_to_retry_action": False,
+            "requires_reobserve": not verification_passed,
+            "observation_attempts_used": len(observations),
+            "observation_attempts_max": attempts,
+            "observation_delay_ms": delay_ms,
+            "automatic_action_retry": False,
+            "observations": observations,
+            "verification": final_verification,
+        }
+
+    def _game_verification_baseline(self, serial: str, *, limit: int) -> dict[str, Any]:
+        baseline = self._verification_baseline(serial, limit=limit)
+        baseline["game_world_dhash"] = self.screen_region_visual_hash(serial)
+        return baseline
+
+    def _observe_game_action(
+        self,
+        baseline: dict[str, Any],
+        *,
+        expected_package_name: str,
+        observation_attempts: int,
+        observation_delay_ms: int,
+        limit: int,
+        serial: str,
+    ) -> dict[str, Any]:
+        observed = self._observe_verified_action(
+            baseline,
+            expected_package_name=expected_package_name,
+            verification_policy="any_confident_change",
+            observation_attempts=observation_attempts,
+            observation_delay_ms=observation_delay_ms,
+            limit=limit,
+            serial=serial,
+        )
+        previous_world_hash = str(baseline.get("game_world_dhash") or "")
+        current_world_hash = self.screen_region_visual_hash(serial)
+        world_distance = self._hex_hamming_distance(previous_world_hash, current_world_hash)
+        world_change_confident = world_distance >= GAME_WORLD_VERIFY_HAMMING_THRESHOLD
+        guard_ok = bool(observed.get("foreground_guard_ok"))
+        shared_verified = bool(observed.get("verification_passed"))
+        game_verified = guard_ok and (shared_verified or world_change_confident)
+        if game_verified:
+            execution_status = "EXECUTED_VERIFIED"
+            verification_source = "shared_contract" if shared_verified else "game_world_region"
+        elif guard_ok:
+            execution_status = "EXECUTED_UNVERIFIED"
+            verification_source = "none"
+        else:
+            execution_status = "RECOVERABLE_ERROR"
+            verification_source = "foreground_guard"
+        return {
+            **observed,
+            "verification_passed": game_verified,
+            "execution_status": execution_status,
+            "safe_to_retry_action": False,
+            "requires_reobserve": not game_verified,
+            "verification_source": verification_source,
+            "game_motion_verification": {
+                "previous_visual_dhash": previous_world_hash,
+                "current_visual_dhash": current_world_hash,
+                "visual_hamming_distance": world_distance,
+                "visual_hamming_threshold": GAME_WORLD_VERIFY_HAMMING_THRESHOLD,
+                "visual_change_confident": world_change_confident,
+            },
+        }
+
+    def tap_verified(
+        self,
+        x: int,
+        y: int,
+        *,
+        expected_package_name: str | None = None,
+        verification_policy: str = "any_confident_change",
+        observation_attempts: int = 3,
+        observation_delay_ms: int = 250,
+        limit: int = 40,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Execute one tap, then observe bounded post-action state without retrying the tap."""
+        selected = self.select_device(serial)
+        expected = self._normalize_expected_package(expected_package_name)
+        self._require_foreground_package(expected, selected, phase="before tap")
+        baseline = self._verification_baseline(selected, limit=limit)
+        action_result = self.tap(x, y, selected)
+        observed = self._observe_verified_action(
+            baseline,
+            expected_package_name=expected,
+            verification_policy=verification_policy,
+            observation_attempts=observation_attempts,
+            observation_delay_ms=observation_delay_ms,
+            limit=limit,
+            serial=selected,
+        )
+        return {
+            "status": "ok",
+            "action": "tap_verified",
+            "serial": selected,
+            "expected_package_name": expected,
+            "action_executed_once": True,
+            "action_result": action_result,
+            "baseline": baseline,
+            **observed,
+        }
+
+    def long_press_verified(
+        self,
+        x: int,
+        y: int,
+        *,
+        duration_ms: int = 700,
+        expected_package_name: str | None = None,
+        verification_policy: str = "any_confident_change",
+        observation_attempts: int = 3,
+        observation_delay_ms: int = 250,
+        limit: int = 40,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Execute one long press, then observe bounded post-action state without retrying it."""
+        selected = self.select_device(serial)
+        expected = self._normalize_expected_package(expected_package_name)
+        self._require_foreground_package(expected, selected, phase="before long press")
+        baseline = self._verification_baseline(selected, limit=limit)
+        action_result = self.long_press(x, y, duration_ms, selected)
+        observed = self._observe_verified_action(
+            baseline,
+            expected_package_name=expected,
+            verification_policy=verification_policy,
+            observation_attempts=observation_attempts,
+            observation_delay_ms=observation_delay_ms,
+            limit=limit,
+            serial=selected,
+        )
+        return {
+            "status": "ok",
+            "action": "long_press_verified",
+            "serial": selected,
+            "expected_package_name": expected,
+            "action_executed_once": True,
+            "action_result": action_result,
+            "baseline": baseline,
+            **observed,
+        }
+
+    def swipe_verified(
+        self,
+        start_x: int,
+        start_y: int,
+        end_x: int,
+        end_y: int,
+        *,
+        duration_ms: int = 400,
+        expected_package_name: str | None = None,
+        verification_policy: str = "any_confident_change",
+        observation_attempts: int = 3,
+        observation_delay_ms: int = 250,
+        limit: int = 40,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Execute one swipe, then observe bounded post-action state without retrying the swipe."""
+        selected = self.select_device(serial)
+        expected = self._normalize_expected_package(expected_package_name)
+        self._require_foreground_package(expected, selected, phase="before swipe")
+        baseline = self._verification_baseline(selected, limit=limit)
+        action_result = self.swipe(
+            start_x,
+            start_y,
+            end_x,
+            end_y,
+            duration_ms,
+            selected,
+        )
+        observed = self._observe_verified_action(
+            baseline,
+            expected_package_name=expected,
+            verification_policy=verification_policy,
+            observation_attempts=observation_attempts,
+            observation_delay_ms=observation_delay_ms,
+            limit=limit,
+            serial=selected,
+        )
+        return {
+            "status": "ok",
+            "action": "swipe_verified",
+            "serial": selected,
+            "expected_package_name": expected,
+            "action_executed_once": True,
+            "action_result": action_result,
+            "baseline": baseline,
+            **observed,
+        }
+
+    def swipe_direction_verified(
+        self,
+        direction: str,
+        *,
+        distance_ratio: float = 0.35,
+        duration_ms: int = 400,
+        expected_package_name: str | None = None,
+        verification_policy: str = "any_confident_change",
+        observation_attempts: int = 3,
+        observation_delay_ms: int = 250,
+        limit: int = 40,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Execute one safe center-origin directional swipe, then verify without automatic retry."""
+        selected = self.select_device(serial)
+        normalized, ratio, start, end = self._directional_swipe_points(
+            direction,
+            distance_ratio,
+            selected,
+        )
+        result = self.swipe_verified(
+            start[0],
+            start[1],
+            end[0],
+            end[1],
+            duration_ms=duration_ms,
+            expected_package_name=expected_package_name,
+            verification_policy=verification_policy,
+            observation_attempts=observation_attempts,
+            observation_delay_ms=observation_delay_ms,
+            limit=limit,
+            serial=selected,
+        )
+        return {
+            **result,
+            "action": "swipe_direction_verified",
+            "direction": normalized,
+            "distance_ratio": ratio,
+        }
+
+    def game_joystick_move(
+        self,
+        direction: str,
+        duration_ms: int,
+        *,
+        expected_package_name: str,
+        center_x: int | None = None,
+        center_y: int | None = None,
+        radius_px: int | None = None,
+        observation_attempts: int = 2,
+        observation_delay_ms: int = 200,
+        limit: int = 20,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Approximate one bounded virtual-joystick hold with a long ADB drag and verify its effect.
+
+        This is intentionally implemented with Android's documented `input swipe` primitive.
+        It does not use sendevent, root, accessibility injection, or anti-cheat bypasses.
+        """
+        normalized_direction = direction.strip().lower().replace("-", "_")
+        if normalized_direction not in GAME_JOYSTICK_DIRECTIONS:
+            raise PhoneBridgeError(
+                "Unsupported joystick direction. Allowed values: "
+                + ", ".join(sorted(GAME_JOYSTICK_DIRECTIONS))
+            )
+        expected = self._normalize_expected_package(expected_package_name)
+        assert expected is not None
+        selected = self.select_device(serial)
+        session = self._require_landscape_game_session(expected, selected)
+        width, height = [int(value) for value in session["input_size"]]
+
+        default_center_x = round(width * 0.19)
+        default_center_y = round(height * 0.78)
+        start_x = default_center_x if center_x is None else int(center_x)
+        start_y = default_center_y if center_y is None else int(center_y)
+        start_x, start_y = self._validate_point(start_x, start_y, selected)
+
+        default_radius = max(48, round(min(width, height) * 0.22))
+        radius = default_radius if radius_px is None else int(radius_px)
+        radius = max(24, min(round(min(width, height) * 0.35), radius))
+        vector_x, vector_y = GAME_JOYSTICK_DIRECTIONS[normalized_direction]
+        end_x = round(start_x + vector_x * radius)
+        end_y = round(start_y + vector_y * radius)
+        end_x = max(0, min(width - 1, end_x))
+        end_y = max(0, min(height - 1, end_y))
+        duration = max(200, min(MAX_GAME_GESTURE_MS, int(duration_ms)))
+
+        baseline = self._game_verification_baseline(selected, limit=limit)
+        self._run(
+            [
+                "shell",
+                "input",
+                "swipe",
+                str(start_x),
+                str(start_y),
+                str(end_x),
+                str(end_y),
+                str(duration),
+            ],
+            serial=selected,
+            timeout=max(15, duration // 1000 + 10),
+        )
+        action_result = {
+            "status": "ok",
+            "action": "game_joystick_drag",
+            "direction": normalized_direction,
+            "start": [start_x, start_y],
+            "end": [end_x, end_y],
+            "radius_px": radius,
+            "duration_ms": duration,
+            "motion_model": "adb_long_swipe",
+            "serial": selected,
+        }
+        observed = self._observe_game_action(
+            baseline,
+            expected_package_name=expected,
+            observation_attempts=observation_attempts,
+            observation_delay_ms=observation_delay_ms,
+            limit=limit,
+            serial=selected,
+        )
+        return {
+            "status": "ok",
+            "action": "game_joystick_move",
+            "serial": selected,
+            "expected_package_name": expected,
+            "action_executed_once": True,
+            "session_guard": session,
+            "action_result": action_result,
+            "baseline": baseline,
+            **observed,
+        }
+
+    def game_camera_drag(
+        self,
+        direction: str,
+        distance_px: int,
+        *,
+        expected_package_name: str,
+        duration_ms: int = 350,
+        start_x: int | None = None,
+        start_y: int | None = None,
+        observation_attempts: int = 2,
+        observation_delay_ms: int = 180,
+        limit: int = 20,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Drag the game camera from a bounded safe-right region and verify one action only.
+
+        The default start point deliberately avoids the Android gesture edges, the
+        lower-left joystick, and the usual lower-right skill cluster used by landscape games.
+        """
+        normalized_direction = direction.strip().lower()
+        if normalized_direction not in GAME_CAMERA_DIRECTIONS:
+            raise PhoneBridgeError(
+                "Unsupported camera direction. Allowed values: "
+                + ", ".join(sorted(GAME_CAMERA_DIRECTIONS))
+            )
+        expected = self._normalize_expected_package(expected_package_name)
+        assert expected is not None
+        selected = self.select_device(serial)
+        session = self._require_landscape_game_session(expected, selected)
+        width, height = [int(value) for value in session["input_size"]]
+
+        safe_left = round(width * 0.42)
+        safe_right = round(width * 0.72)
+        safe_top = round(height * 0.28)
+        safe_bottom = round(height * 0.62)
+        sx = round(width * 0.58) if start_x is None else int(start_x)
+        sy = round(height * 0.45) if start_y is None else int(start_y)
+        if not (safe_left <= sx <= safe_right and safe_top <= sy <= safe_bottom):
+            raise PhoneBridgeError(
+                "Camera drag start is outside the bounded game-camera safe region: "
+                f"x={safe_left}-{safe_right}, y={safe_top}-{safe_bottom}."
+            )
+
+        max_distance = max(60, round(min(width, height) * 0.28))
+        distance = max(40, min(max_distance, int(distance_px)))
+        vector_x, vector_y = GAME_CAMERA_DIRECTIONS[normalized_direction]
+        ex = round(sx + vector_x * distance)
+        ey = round(sy + vector_y * distance)
+        ex = max(safe_left, min(safe_right, ex))
+        ey = max(safe_top, min(safe_bottom, ey))
+        duration = max(120, min(MAX_GAME_CAMERA_GESTURE_MS, int(duration_ms)))
+
+        baseline = self._game_verification_baseline(selected, limit=limit)
+        action_result = self.swipe(sx, sy, ex, ey, duration, selected)
+        observed = self._observe_game_action(
+            baseline,
+            expected_package_name=expected,
+            observation_attempts=observation_attempts,
+            observation_delay_ms=observation_delay_ms,
+            limit=limit,
+            serial=selected,
+        )
+        return {
+            "status": "ok",
+            "action": "game_camera_drag",
+            "serial": selected,
+            "expected_package_name": expected,
+            "direction": normalized_direction,
+            "action_executed_once": True,
+            "session_guard": session,
+            "safe_region": [safe_left, safe_top, safe_right, safe_bottom],
+            "action_result": action_result,
+            "baseline": baseline,
+            **observed,
+        }
+
+    def open_app_verified(
+        self,
+        package_name: str,
+        *,
+        observation_attempts: int = 4,
+        observation_delay_ms: int = 250,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Launch an app once and wait for stable visible-surface ownership without retrying launch."""
+        package_name = package_name.strip()
+        if not PACKAGE_RE.fullmatch(package_name):
+            raise PhoneBridgeError("Invalid Android package name.")
+        selected = self.select_device(serial)
+        action_result = self.open_app(package_name, selected)
+        attempts = max(1, min(MAX_STABLE_SURFACE_SAMPLES, int(observation_attempts)))
+        delay = max(0, min(MAX_STABLE_SURFACE_DELAY_MS, int(observation_delay_ms)))
+        observations: list[dict[str, Any]] = []
+        final: dict[str, Any] | None = None
+        for attempt in range(1, attempts + 1):
+            if delay:
+                time.sleep(delay / 1000.0)
+            final = self.stable_surface_identity(selected, samples=2, delay_ms=60, limit=12)
+            observations.append(
+                {
+                    "attempt": attempt,
+                    "package_name": final.get("package_name", ""),
+                    "stable": bool(final.get("stable")),
+                    "orientation": final.get("orientation"),
+                }
+            )
+            if final.get("stable") and final.get("package_name") == package_name:
+                break
+        assert final is not None
+        verified = bool(final.get("stable") and final.get("package_name") == package_name)
+        return {
+            "status": "ok",
+            "action": "open_app_verified",
+            "serial": selected,
+            "package_name": package_name,
+            "action_executed_once": True,
+            "action_result": action_result,
+            "verification_passed": verified,
+            "execution_status": "EXECUTED_VERIFIED" if verified else "EXECUTED_UNVERIFIED",
+            "safe_to_retry_action": False,
+            "requires_reobserve": not verified,
+            "surface": final,
+            "observations": observations,
+            "automatic_action_retry": False,
+        }
+
+    def type_text(self, text: str, serial: str | None = None) -> dict[str, Any]:
+        if not text:
+            raise PhoneBridgeError("Text must not be empty.")
+        if len(text) > 500:
+            raise PhoneBridgeError("Text is limited to 500 characters per tool call.")
+        if not SAFE_TEXT_RE.fullmatch(text):
+            raise PhoneBridgeError(
+                "For safety, ADB text input currently accepts ASCII letters/numbers, spaces, and . , _ @ : + - / only."
+            )
+        selected = self.select_device(serial)
+        adb_text = text.replace(" ", "%s")
+        self._run(["shell", "input", "text", adb_text], serial=selected)
+        return {"status": "ok", "action": "type_text", "characters": len(text), "serial": selected}
+
+    def type_text_verified(
+        self,
+        text: str,
+        *,
+        expected_package_name: str | None = None,
+        verification_policy: str = "any_confident_change",
+        observation_attempts: int = 3,
+        observation_delay_ms: int = 250,
+        limit: int = 40,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Type once into the focused field, then verify bounded state change without retrying input."""
+        selected = self.select_device(serial)
+        expected = self._normalize_expected_package(expected_package_name)
+        self._require_foreground_package(expected, selected, phase="before text input")
+        baseline = self._verification_baseline(selected, limit=limit)
+        action_result = self.type_text(text, selected)
+        observed = self._observe_verified_action(
+            baseline,
+            expected_package_name=expected,
+            verification_policy=verification_policy,
+            observation_attempts=observation_attempts,
+            observation_delay_ms=observation_delay_ms,
+            limit=limit,
+            serial=selected,
+        )
+        return {
+            "status": "ok",
+            "action": "type_text_verified",
+            "serial": selected,
+            "expected_package_name": expected,
+            "action_executed_once": True,
+            "action_result": action_result,
+            "baseline": baseline,
+            **observed,
+        }
+
+    def keyevent(self, key: str, serial: str | None = None) -> dict[str, Any]:
+        normalized = key.strip().upper()
+        if normalized not in SAFE_KEYEVENTS:
+            raise PhoneBridgeError("Unsupported key. Allowed keys: " + ", ".join(sorted(SAFE_KEYEVENTS)))
+        selected = self.select_device(serial)
+        self._run(["shell", "input", "keyevent", str(SAFE_KEYEVENTS[normalized])], serial=selected)
+        return {"status": "ok", "action": "keyevent", "key": normalized, "serial": selected}
+
+    def keyevent_verified(
+        self,
+        key: str,
+        *,
+        expected_package_name: str | None = None,
+        expected_post_package_name: str | None = None,
+        verification_policy: str = "any_confident_change",
+        observation_attempts: int = 3,
+        observation_delay_ms: int = 250,
+        limit: int = 40,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        """Press one allowlisted key, then verify bounded post-action state without retrying it."""
+        selected = self.select_device(serial)
+        expected_before = self._normalize_expected_package(expected_package_name)
+        expected_after = self._normalize_expected_package(expected_post_package_name)
+        self._require_foreground_package(expected_before, selected, phase="before key press")
+        baseline = self._verification_baseline(selected, limit=limit)
+        action_result = self.keyevent(key, selected)
+        observed = self._observe_verified_action(
+            baseline,
+            expected_package_name=expected_after,
+            verification_policy=verification_policy,
+            observation_attempts=observation_attempts,
+            observation_delay_ms=observation_delay_ms,
+            limit=limit,
+            serial=selected,
+        )
+        return {
+            "status": "ok",
+            "action": "keyevent_verified",
+            "serial": selected,
+            "expected_package_name": expected_before,
+            "expected_post_package_name": expected_after,
+            "action_executed_once": True,
+            "action_result": action_result,
+            "baseline": baseline,
+            **observed,
+        }
+
+    def open_app(self, package_name: str, serial: str | None = None) -> dict[str, Any]:
+        package_name = package_name.strip()
+        if not PACKAGE_RE.fullmatch(package_name):
+            raise PhoneBridgeError("Invalid Android package name.")
+        selected = self.select_device(serial)
+        output = str(
+            self._run(
+                ["shell", "monkey", "-p", package_name, "-c", "android.intent.category.LAUNCHER", "1"],
+                serial=selected,
+                timeout=20,
+            )
+        )
+        if "No activities found" in output or "monkey aborted" in output.lower():
+            raise PhoneBridgeError(f"No launchable app found for package '{package_name}'.")
+        return {"status": "ok", "action": "open_app", "package_name": package_name, "serial": selected}
+
+    def current_app(self, serial: str | None = None) -> dict[str, str]:
+        """Return the best-effort foreground package/activity across Android vendor formats."""
+        selected = self.select_device(serial)
+        outputs: list[str] = []
+        for args in (
+            ["shell", "dumpsys", "window", "windows"],
+            ["shell", "dumpsys", "activity", "activities"],
+        ):
+            try:
+                outputs.append(str(self._run(args, serial=selected, timeout=20)))
+            except PhoneBridgeError:
+                continue
+
+        patterns = (
+            r"mCurrentFocus=.*?\s(?:u\d+\s+)?([A-Za-z0-9_.]+)/([^\s}]+)",
+            r"mFocusedApp=.*?\s(?:u\d+\s+)?([A-Za-z0-9_.]+)/([^\s}]+)",
+            r"topResumedActivity=.*?\s(?:u\d+\s+)?([A-Za-z0-9_.]+)/([^\s}]+)",
+            r"mResumedActivity=.*?\s(?:u\d+\s+)?([A-Za-z0-9_.]+)/([^\s}]+)",
+            r"ResumedActivity:.*?\s(?:u\d+\s+)?([A-Za-z0-9_.]+)/([^\s}]+)",
+        )
+        for output in outputs:
+            for pattern in patterns:
+                matches = re.findall(pattern, output)
+                if matches:
+                    package_name, activity = matches[-1]
+                    return {
+                        "serial": selected,
+                        "package_name": package_name,
+                        "activity": activity,
+                    }
+        return {"serial": selected, "package_name": "", "activity": ""}
+
+    def surface_identity(self, serial: str | None = None, *, limit: int = 12) -> dict[str, Any]:
+        """Return the best visible surface identity, preferring UIAutomator when it is unambiguous.
+
+        Android vendor launchers and transient task switches can make dumpsys report a
+        launcher for a fraction of a second while the visible app surface is still the
+        game. Conversely, a lockscreen/system overlay must override the underlying game.
+        This mirrors the reconciliation used by Fast Context and exposes the evidence.
+        """
+        selected = self.select_device(serial)
+        context = self.screen_context(serial=selected, limit=max(1, min(40, int(limit))))
+        reported = self.current_app(selected)
+        visible_packages = [str(item) for item in context.get("packages", []) if str(item)]
+        visible_package = visible_packages[0] if len(visible_packages) == 1 else ""
+        reported_package = str(reported.get("package_name") or "")
+        reported_activity = str(reported.get("activity") or "")
+        if visible_package:
+            package_name = visible_package
+            activity = reported_activity if visible_package == reported_package else ""
+            source = (
+                "uia_and_dumpsys_agree"
+                if visible_package == reported_package
+                else "uia_visible_package_override"
+            )
+        else:
+            package_name = reported_package
+            activity = reported_activity
+            source = "dumpsys_fallback"
+        return {
+            "serial": selected,
+            "package_name": package_name,
+            "activity": activity,
+            "source": source,
+            "reported_package_name": reported_package,
+            "reported_activity": reported_activity,
+            "visible_packages": visible_packages,
+            "orientation": context.get("orientation"),
+            "input_size": list(context.get("input_size") or []),
+            "semantic_signature": context.get("semantic_signature"),
+            "elements": list(context.get("elements") or []),
+        }
+
+    def stable_surface_identity(
+        self,
+        serial: str | None = None,
+        *,
+        samples: int = 2,
+        delay_ms: int = 120,
+        limit: int = 12,
+    ) -> dict[str, Any]:
+        """Require consecutive agreement before treating a package as foreground-stable."""
+        selected = self.select_device(serial)
+        sample_count = max(1, min(MAX_STABLE_SURFACE_SAMPLES, int(samples)))
+        delay = max(0, min(MAX_STABLE_SURFACE_DELAY_MS, int(delay_ms)))
+        observations: list[dict[str, Any]] = []
+        consecutive = 0
+        last_package = ""
+        last: dict[str, Any] | None = None
+        for index in range(sample_count):
+            if index and delay:
+                time.sleep(delay / 1000.0)
+            current = self.surface_identity(selected, limit=limit)
+            package_name = str(current.get("package_name") or "")
+            observations.append(
+                {
+                    "package_name": package_name,
+                    "activity": str(current.get("activity") or ""),
+                    "source": str(current.get("source") or ""),
+                    "orientation": current.get("orientation"),
+                }
+            )
+            if package_name and package_name == last_package:
+                consecutive += 1
+            else:
+                last_package = package_name
+                consecutive = 1 if package_name else 0
+            last = current
+        assert last is not None
+        required_consecutive = 1 if sample_count == 1 else 2
+        return {
+            **last,
+            "stable": bool(last_package and consecutive >= required_consecutive),
+            "samples_requested": sample_count,
+            "consecutive_agreement": consecutive,
+            "observations": observations,
+        }
+
+    @staticmethod
+    def _lockscreen_from_surface(surface: dict[str, Any]) -> bool:
+        package_name = str(surface.get("package_name") or "")
+        if package_name != "com.android.systemui":
+            return False
+        haystacks: list[str] = []
+        for item in surface.get("elements") or []:
+            if not isinstance(item, dict):
+                continue
+            haystacks.extend(
+                str(item.get(key) or "").casefold()
+                for key in ("text", "content_desc", "resource_id")
+            )
+        joined = "\n".join(haystacks)
+        return any(token.casefold() in joined for token in LOCKSCREEN_TOKENS)
+
+    def device_state_snapshot(self, serial: str | None = None) -> dict[str, Any]:
+        """Return a read-only device/session guard snapshot for reliable phone actions."""
+        selected = self.select_device(serial)
+        surface = self.stable_surface_identity(selected, samples=2, delay_ms=80, limit=20)
+        width, height = self.screen_size(selected)
+        orientation = "landscape" if width > height else "portrait"
+        screen_on: bool | None = None
+        try:
+            power = str(self._run(["shell", "dumpsys", "power"], serial=selected, timeout=20))
+            if re.search(r"mInteractive\s*=\s*true|mWakefulness\s*=\s*Awake", power, re.I):
+                screen_on = True
+            elif re.search(r"mInteractive\s*=\s*false|mWakefulness\s*=\s*Asleep", power, re.I):
+                screen_on = False
+        except PhoneBridgeError:
+            pass
+        locked = self._lockscreen_from_surface(surface)
+        return {
+            "serial": selected,
+            "connected": True,
+            "screen_on": screen_on,
+            "locked": locked,
+            "orientation": orientation,
+            "input_size": [width, height],
+            "surface": {
+                "package_name": surface.get("package_name", ""),
+                "activity": surface.get("activity", ""),
+                "source": surface.get("source", ""),
+                "stable": bool(surface.get("stable")),
+                "observations": surface.get("observations", []),
+            },
+            "ready_for_landscape_game": bool(
+                surface.get("stable") and not locked and screen_on is not False and orientation == "landscape"
+            ),
+        }
+
+    def _require_landscape_game_session(self, expected_package_name: str, serial: str) -> dict[str, Any]:
+        state = self.device_state_snapshot(serial)
+        if state.get("screen_on") is False:
+            raise PhoneBridgeError("SCREEN_OFF: wake and unlock the Android device before game input.")
+        if state.get("locked"):
+            raise PhoneBridgeError("DEVICE_LOCKED: unlock the Android device before game input.")
+        if state.get("orientation") != "landscape":
+            raise PhoneBridgeError(
+                "GAME_ORIENTATION_MISMATCH: expected landscape before game input; "
+                f"current input size is {state.get('input_size')}."
+            )
+        surface = state.get("surface") or {}
+        if not surface.get("stable"):
+            raise PhoneBridgeError("APP_TRANSITIONING: foreground surface is not stable yet.")
+        actual = str(surface.get("package_name") or "")
+        if actual != expected_package_name:
+            raise PhoneBridgeError(
+                f"Foreground package guard failed before game input: expected '{expected_package_name}', got '{actual or '<unknown>'}'."
+            )
+        return state
+
+    @staticmethod
+    def _hex_hamming_distance(left: str, right: str) -> int:
+        left_value = str(left or "").strip().casefold()
+        right_value = str(right or "").strip().casefold()
+        if not left_value or not right_value or len(left_value) != len(right_value):
+            raise PhoneBridgeError("Visual hash values must be non-empty hexadecimal strings of equal length.")
+        if not re.fullmatch(r"[0-9a-f]+", left_value) or not re.fullmatch(r"[0-9a-f]+", right_value):
+            raise PhoneBridgeError("Visual hash values must contain hexadecimal characters only.")
+        return (int(left_value, 16) ^ int(right_value, 16)).bit_count()
+
+    def verify_state_change(
+        self,
+        previous_semantic_signature: str,
+        *,
+        previous_visual_dhash: str | None = None,
+        previous_package_name: str | None = None,
+        previous_activity: str | None = None,
+        verification_policy: str = "any_confident_change",
+        limit: int = 40,
+        serial: str | None = None,
+    ) -> dict[str, Any]:
+        previous_signature = str(previous_semantic_signature or "").strip().casefold()
+        if not re.fullmatch(r"[0-9a-f]{24}", previous_signature):
+            raise PhoneBridgeError("previous_semantic_signature must be a 24-character hexadecimal token.")
+        try:
+            policy = normalize_verification_policy(verification_policy)
+        except VerificationContractError as exc:
+            raise PhoneBridgeError(str(exc)) from exc
+
+        context = self.screen_context(serial=serial, limit=limit)
+        reported_app = self.current_app(context["serial"])
+        visible_packages = [str(item) for item in context.get("packages", []) if str(item)]
+        visible_package = visible_packages[0] if len(visible_packages) == 1 else ""
+        reported_package = str(reported_app.get("package_name") or "")
+        reported_activity = str(reported_app.get("activity") or "")
+        if visible_package:
+            current_package = visible_package
+            current_activity = reported_activity if visible_package == reported_package else ""
+            current_identity_source = (
+                "uia_and_dumpsys_agree"
+                if visible_package == reported_package
+                else "uia_visible_package_override"
+            )
+        else:
+            current_package = reported_package
+            current_activity = reported_activity
+            current_identity_source = "dumpsys_fallback"
+        semantic_changed = previous_signature != str(context["semantic_signature"]).casefold()
+
+        previous_package = str(previous_package_name or "").strip()
+        previous_activity_value = str(previous_activity or "").strip()
+        surface_identity_checked = bool(previous_package or previous_activity_value)
+        surface_identity_changed = False
+        if surface_identity_checked:
+            surface_identity_changed = bool(
+                (previous_package and previous_package != current_package)
+                or (previous_activity_value and previous_activity_value != current_activity)
+            )
+
+        current_visual_dhash: str | None = None
+        visual_hamming_distance: int | None = None
+        visual_changed = False
+        visual_change_confident = False
+        if previous_visual_dhash is not None:
+            current_visual_dhash = self.screen_visual_hash(context["serial"])
+            visual_hamming_distance = self._hex_hamming_distance(
+                str(previous_visual_dhash),
+                current_visual_dhash,
+            )
+            visual_changed = visual_hamming_distance > 0
+            visual_change_confident = visual_hamming_distance >= VISUAL_VERIFY_HAMMING_THRESHOLD
+
+        signals = {
+            "state_change_detected": bool(
+                semantic_changed or surface_identity_changed or visual_change_confident
+            ),
+            "semantic_changed": semantic_changed,
+            "surface_identity_changed": surface_identity_changed,
+            "visual_change_confident": visual_change_confident,
+        }
+        policy_result = evaluate_verification_policy(signals, policy)
+        contract_result = combine_verification_result(policy_result)
+
+        return {
+            "status": "ok",
+            "action": "verify_android_state_change",
+            "verification_policy": policy,
+            "verification_passed": bool(contract_result["verification_passed"]),
+            "policy": policy_result,
+            "verification_contract": contract_result,
+            "state_change_detected": bool(signals["state_change_detected"]),
+            "semantic_changed": semantic_changed,
+            "surface_identity_checked": surface_identity_checked,
+            "surface_identity_changed": surface_identity_changed,
+            "visual_changed": visual_changed,
+            "visual_change_confident": visual_change_confident,
+            "visual_hamming_distance": visual_hamming_distance,
+            "visual_hamming_threshold": VISUAL_VERIFY_HAMMING_THRESHOLD,
+            "previous": {
+                "semantic_signature": previous_signature,
+                "visual_dhash": str(previous_visual_dhash or "").strip().casefold() or None,
+                "package_name": previous_package or None,
+                "activity": previous_activity_value or None,
+            },
+            "current": {
+                "semantic_signature": context["semantic_signature"],
+                "visual_dhash": current_visual_dhash,
+                "package_name": current_package,
+                "activity": current_activity,
+                "identity_source": current_identity_source,
+                "reported_package_name": reported_package,
+                "reported_activity": reported_activity,
+                "serial": context["serial"],
+            },
+        }
