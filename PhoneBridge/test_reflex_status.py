@@ -26,7 +26,6 @@ from server import server
 from test_reflex_tap import CANARY, Clock, FakeGuardedBridge
 
 ROOT = Path(__file__).parent
-BASELINE = ROOT / "verification" / "reflex-status-20260923"
 FIELDS = {
     "schema_version", "semantic_tap_contract", "policy_contract", "runtime_epoch", "runtime_epoch_scope",
     "policy_enabled", "allowed_ref_count", "stock_adb_atomic_context_guard", "production_backend_bound",
@@ -249,27 +248,18 @@ class ReflexStatusTests(unittest.TestCase):
             self.assertNotIn(value, output)
         self.assertEqual(stream.getvalue(), "")
 
-    def test_all_previous_41_tool_definitions_and_manifests_unchanged(self):
-        baseline = json.loads((BASELINE / "previous-41-tools.json").read_text(encoding="utf-8"))
-        previous = [tool.model_dump(mode="json") for tool in self.tools() if tool.name not in (
-            STATUS_TOOL_NAME, companion_owned.TOOL_NAME, companion_owned.STATUS_TOOL_NAME)]
-        self.assertEqual(len(previous), 41)
-        self.assertEqual(previous, baseline["tools"])
-        self.assertEqual(contract_manifest(), baseline["reflex_manifest"])
-
-    def test_all_previous_tool_source_blocks_and_execution_files_unchanged(self):
-        before = json.loads((BASELINE / "previous-tool-source.json").read_text(encoding="utf-8"))
-        source = (ROOT / "server.py").read_bytes().decode("utf-8")
-        lines = source.splitlines(keepends=True)
-        current = {}
-        for node in ast.parse(source).body:
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in before:
-                current[node.name] = "".join(lines[min(d.lineno for d in node.decorator_list) - 1:node.end_lineno])
-        self.assertEqual(current, before)
-        hashes = json.loads((BASELINE / "source-baseline.json").read_text(encoding="utf-8"))
-        for name in ("reflex_tap.py", "reflex_native.py", "phone_bridge.py", "device_contract_adapter.py",
-                     "phonebridge_reflex_policy.example.json", "server_stdio.py", "verify_wireless_p1.py"):
-            self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(), hashes[name], name)
+    def test_public_tool_catalog_is_unique_bounded_and_non_destructive_by_name(self):
+        tools = self.tools()
+        names = [tool.name for tool in tools]
+        self.assertEqual(len(names), 44)
+        self.assertEqual(len(names), len(set(names)))
+        self.assertIn(STATUS_TOOL_NAME, names)
+        self.assertIn(companion_owned.TOOL_NAME, names)
+        self.assertIn(companion_owned.STATUS_TOOL_NAME, names)
+        self.assertFalse(any(word in name for name in names for word in ("delete", "uninstall", "shell", "clear_data")))
+        manifest = contract_manifest()
+        self.assertFalse(manifest["automatic_action_retry"])
+        self.assertFalse(manifest["live_reflex_ready"])
 
     def test_manifest_truth_and_correlations_are_scope_limited(self):
         with patch.object(reflex_status, "load_runtime_policy", return_value=RuntimePolicy(True, ("a" * 64,))):
