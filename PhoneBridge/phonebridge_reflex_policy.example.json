@@ -1,0 +1,5 @@
+{
+  "schema_version": "phonebridge.reflex.policy.v1",
+  "enabled": false,
+  "allowed_binding_ids": []
+}
